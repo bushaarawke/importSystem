@@ -14,7 +14,10 @@ const SESSION_MS = 12 * 60 * 60 * 1000;
 const OTP_MS = 10 * 60 * 1000;
 const MAX_BODY = 8 * 1024 * 1024;
 
-const store = require("./lib/store").create();
+let store;
+try { store = require("./lib/store").create(); }
+catch (e) { const err = e; store = { kind: "unavailable", init: async () => { throw err; } }; }
+let dbError = "";
 const mailer = require("./lib/mailer").create();
 
 /* ---------- helpers ---------- */
@@ -33,6 +36,14 @@ function readBody(req) {
   });
 }
 function cookies(req) { const out = {}; (req.headers.cookie || "").split(";").forEach(p => { const i = p.indexOf("="); if (i > 0) out[p.slice(0, i).trim()] = decodeURIComponent(p.slice(i + 1).trim()); }); return out; }
+function mailHint(m) {
+  m = String(m || "");
+  if (/Invalid login|535|authentication failed|auth/i.test(m)) return "SMTP_USER must be the exact mailbox address and SMTP_PASS its password.";
+  if (/ENOTFOUND|getaddrinfo/i.test(m)) return "SMTP_HOST must be smtp.hostinger.com.";
+  if (/ETIMEDOUT|timeout|ECONNREFUSED/i.test(m)) return "Try SMTP_PORT=587.";
+  if (/sender|from address|553|550/i.test(m)) return "MAIL_FROM must be the same address as SMTP_USER.";
+  return "Check the SMTP_ settings and that the mailbox exists in hPanel > Emails.";
+}
 function sessionCookie(token, maxAgeSec) { return `sid=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAgeSec}${PROD ? "; Secure" : ""}`; }
 function ip(req) { return String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim(); }
 function normEmail(e) { return String(e || "").trim().toLowerCase(); }
@@ -81,21 +92,28 @@ async function bootstrapAdmin() {
 /* ---------- API ---------- */
 async function api(req, res, url) {
   const p = url.pathname, m = req.method;
+  if (dbError && p !== "/api/health") return send(res, 503, { error: "The system can't reach its database right now. Please try again in a minute." });
 
   // Writes must come from the app itself (blocks cross-site form posts).
   if (m !== "GET" && req.headers["x-baraka"] !== "1") return send(res, 403, { error: "forbidden" });
 
-  if (p === "/api/health") return send(res, 200, { ok: true, store: store.kind, email: mailer.configured });
+  if (p === "/api/health") return send(res, dbError ? 503 : 200, { ok: !dbError, store: store.kind, email: mailer.configured, database: dbError ? "not connected" : "connected" });
 
   if (p === "/api/login" && m === "POST") {
     const b = await readBody(req), email = normEmail(b.email);
     if (limited("login:" + email, 8, 15 * 60 * 1000) || limited("ip:" + ip(req), 30, 15 * 60 * 1000)) return send(res, 429, { error: "Too many attempts. Try again in 15 minutes." });
     const u = await store.getUser(email);
     if (!u || !u.active || !checkSecret(b.password || "", u.pass_hash)) return send(res, 401, { error: "Email or password is not correct." });
-    if (PROD && !mailer.configured) return send(res, 500, { error: "Email sending is not set up on the server. Ask the administrator." });
+    const codeToLog = process.env.CODE_TO_LOG === "1";
+    if (PROD && !mailer.configured && !codeToLog) return send(res, 500, { error: "Email sending is not set up on the server. Ask the administrator." });
     const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
     await store.saveOtp(email, hashSecret(code), Date.now() + OTP_MS);
-    try { await mailer.sendCode(email, code); } catch (e) { console.error("Email failed:", e.message); return send(res, 500, { error: "Could not send the sign-in code by email. Try again, or ask the administrator." }); }
+    try { await mailer.sendCode(email, code); }
+    catch (e) {
+      console.error("Email failed:", e.message, "| What to fix:", mailHint(e.message));
+      if (!codeToLog) return send(res, 500, { error: "Could not send the sign-in code by email. Try again, or ask the administrator." });
+    }
+    if (codeToLog) console.log(`[CODE_TO_LOG is on] Sign-in code for ${email}: ${code} (valid 10 minutes). Turn CODE_TO_LOG off once email works.`);
     return send(res, 200, { otp: true });
   }
 
@@ -201,12 +219,38 @@ function serveStatic(req, res, url) {
   });
 }
 
+/* ---------- database problem page ---------- */
+function hint(msg) {
+  const m = String(msg || "");
+  if (/Cannot find module 'pg'|Cannot find module 'mysql2'/.test(m)) return "The database driver isn't installed. Upload the latest package.json to GitHub and redeploy.";
+  if (/password authentication failed|Access denied/i.test(m)) return "The database password is wrong. Check the password inside DATABASE_URL (no [ ] brackets).";
+  if (/ENOTFOUND|getaddrinfo/i.test(m)) return "The database server address is wrong. Copy DATABASE_URL again from Supabase: Connect, Direct, Session pooler.";
+  if (/Tenant or user not found/i.test(m)) return "The project ID or region in DATABASE_URL is wrong (for example aws-0 instead of aws-1). Copy it again from Supabase: Connect, Direct, Session pooler.";
+  if (/ETIMEDOUT|ECONNREFUSED|timeout/i.test(m)) return "The database server can't be reached. Use the Session pooler address from Supabase, not Direct connection.";
+  if (/Invalid URL|invalid connection|getaddrinfo EAI_AGAIN/i.test(m)) return "DATABASE_URL isn't written correctly. It must be one line starting with postgresql:// and contain no spaces or quote marks.";
+  return "Check the database settings in Hostinger's Environment variables.";
+}
+function statusPage(res) {
+  const safe = String(dbError).replace(/postgres(ql)?:\/\/[^\s]+/g, "[database address]").replace(/[<>&]/g, "");
+  res.writeHead(503, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Retry-After": "30" });
+  res.end(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="30"><title>Baraka Import System</title></head>
+<body style="margin:0;background:#EEF1F4;font-family:Arial,sans-serif;display:grid;place-items:center;min-height:100vh;padding:20px;box-sizing:border-box">
+<div style="background:#fff;border:1px solid #D5DBE3;border-radius:12px;padding:28px;max-width:560px;color:#16202E">
+<div style="width:36px;height:36px;border-radius:8px;background:#F2A516;color:#12324A;font-weight:bold;display:grid;place-items:center;font-size:19px">B</div>
+<h1 style="font-size:20px;margin:14px 0 6px">The system can't reach its database</h1>
+<p style="color:#5B6676;line-height:1.5;margin:0 0 14px">Your data is safe. The server is running but can't connect to the database, so sign-in is paused. It retries every 30 seconds, and this page refreshes by itself.</p>
+<p style="background:#FAEEDA;color:#854F0B;border-radius:8px;padding:10px 12px;line-height:1.5;margin:0 0 12px"><b>What to fix:</b> ${hint(dbError)}</p>
+<p style="font-size:12.5px;color:#5B6676;margin:0">Technical detail for the administrator: ${safe}</p>
+</div></body></html>`);
+}
+
 /* ---------- start ---------- */
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   try {
     if (url.pathname.startsWith("/api/")) return await api(req, res, url);
     if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405); return res.end(); }
+    if (dbError && (url.pathname === "/" || url.pathname === "/index.html")) return statusPage(res);
     serveStatic(req, res, url);
   } catch (e) {
     console.error(e);
@@ -214,14 +258,22 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-(async () => {
+async function connect() {
   try {
     await store.init();
     await bootstrapAdmin();
-    setInterval(() => store.purge().catch(() => {}), 60 * 60 * 1000);
-    server.listen(PORT, () => console.log(`Baraka Import System running on port ${PORT} (storage: ${store.kind}, email: ${mailer.configured ? "on" : "log only"})`));
+    if (dbError) console.log("Database connected.");
+    dbError = "";
+    return true;
   } catch (e) {
-    console.error("Could not start:", e.message);
-    process.exit(1);
+    dbError = e.message || String(e);
+    console.error("Database problem:", dbError, "| What to fix:", hint(dbError), "| Retrying in 30 seconds.");
+    setTimeout(connect, 30000);
+    return false;
   }
-})();
+}
+server.listen(PORT, async () => {
+  console.log(`Baraka Import System running on port ${PORT} (storage: ${store.kind}, email: ${mailer.configured ? "on" : "log only"})`);
+  await connect();
+  setInterval(() => { if (!dbError && store.purge) store.purge().catch(() => {}); }, 60 * 60 * 1000);
+});
