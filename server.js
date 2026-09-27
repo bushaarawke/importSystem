@@ -46,6 +46,8 @@ function mailHint(m) {
 }
 function sessionCookie(token, maxAgeSec) { return `sid=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAgeSec}${PROD ? "; Secure" : ""}`; }
 function ip(req) { return String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim(); }
+const ROLES = ["admin", "entry", "viewer"];
+function normRole(r) { return r === "staff" ? "entry" : (ROLES.indexOf(r) >= 0 ? r : "entry"); }
 function normEmail(e) { return String(e || "").trim().toLowerCase(); }
 function hashSecret(secret) {
   const salt = crypto.randomBytes(16);
@@ -75,7 +77,7 @@ async function currentUser(req) {
   const t = cookies(req).sid; if (!t || !/^[a-f0-9]{64}$/.test(t)) return null;
   const s = await store.getSession(t); if (!s || s.expires < Date.now()) return null;
   const u = await store.getUser(s.email); if (!u || !u.active) return null;
-  return { email: u.email, name: u.name, role: u.role, token: t };
+  return { email: u.email, name: u.name, role: normRole(u.role), token: t };
 }
 async function bootstrapAdmin() {
   const email = normEmail(process.env.ADMIN_EMAIL), pass = String(process.env.ADMIN_PASSWORD || "").trim().replace(/^["']|["']$/g, "");
@@ -128,7 +130,7 @@ async function api(req, res, url) {
     const u = await store.getUser(email); if (!u || !u.active) return send(res, 401, { error: "This account is not active." });
     const token = crypto.randomBytes(32).toString("hex");
     await store.createSession(token, email, Date.now() + SESSION_MS);
-    return send(res, 200, { email: u.email, name: u.name, role: u.role }, { "Set-Cookie": sessionCookie(token, SESSION_MS / 1000) });
+    return send(res, 200, { email: u.email, name: u.name, role: normRole(u.role) }, { "Set-Cookie": sessionCookie(token, SESSION_MS / 1000) });
   }
 
   if (p === "/api/logout" && m === "POST") {
@@ -159,14 +161,14 @@ async function api(req, res, url) {
   // Users (administrators only)
   if (p === "/api/users" || p.startsWith("/api/users/")) {
     if (user.role !== "admin") return send(res, 403, { error: "Only administrators can manage users." });
-    if (p === "/api/users" && m === "GET") return send(res, 200, await store.listUsers());
+    if (p === "/api/users" && m === "GET") return send(res, 200, (await store.listUsers()).map(u => Object.assign({}, u, { role: normRole(u.role) })));
     if (p === "/api/users" && m === "POST") {
       const b = await readBody(req), email = normEmail(b.email);
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return send(res, 400, { error: "Enter a valid email." });
       const existing = await store.getUser(email);
       if (!existing && String(b.password || "").length < 8) return send(res, 400, { error: "Give a temporary password of at least 8 characters." });
       if (b.password && String(b.password).length < 8) return send(res, 400, { error: "Passwords need at least 8 characters." });
-      const role = b.role === "admin" ? "admin" : "staff";
+      const role = normRole(b.role);
       if (existing && existing.email === user.email && role !== "admin") return send(res, 400, { error: "You cannot remove your own administrator role." });
       await store.saveUser({ email, name: String(b.name || (existing && existing.name) || "").slice(0, 190), role, pass_hash: b.password ? hashSecret(b.password) : existing.pass_hash, active: b.active === false ? false : true, created_at: existing ? existing.created_at : Date.now() });
       return send(res, 200, { ok: true });
@@ -179,7 +181,8 @@ async function api(req, res, url) {
     return send(res, 405, { error: "method" });
   }
 
-  // Data
+  // Data (Follow-up users can only read)
+  if (user.role === "viewer" && m !== "GET" && (p.startsWith("/api/col/") || p.startsWith("/api/doc/"))) return send(res, 403, { error: "Your account is view only. Ask an administrator if you need to make changes." });
   let mm;
   if ((mm = /^\/api\/col\/([a-z]+)$/.exec(p))) {
     const col = mm[1]; if (!COLS.has(col)) return send(res, 404, { error: "unknown collection" });

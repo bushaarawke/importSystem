@@ -99,6 +99,14 @@
   '.sv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin:12px 0}.sv-grid label{font-size:12.5px;color:var(--muted,#5B6676);display:flex;flex-direction:column;gap:3px}.sv-grid input,.sv-grid select{padding:7px 8px;border:1px solid var(--line,#D5DBE3);border-radius:6px;font-size:14px;background:var(--bg,#EEF1F4);color:inherit}'+
   '.sv-btn{border:1px solid var(--line,#D5DBE3);background:var(--panel,#fff);color:inherit;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px}.sv-btn.primary{background:#1E5F83;border-color:#1E5F83;color:#fff}.sv-btn.warn{color:#A32D2D;border-color:#A32D2D}'+
   '.sv-msg{font-size:13px;min-height:18px;margin-top:8px}.sv-msg.err{color:#A32D2D}.sv-msg.ok{color:#27500A}.sv-chip{font-size:11.5px;padding:1px 8px;border-radius:999px;background:#E6F1FB;color:#0C447C}';
+  var HIDE_NONADMIN="#backupBtn,#bkDlg";
+  var HIDE_VIEWER=["#addOrder","#addExtra","#addProd","#addPermit","#addDecl","#saveSet","#opApp [data-act=del]","#saveOrder","#delOrder","#saveP","#delProd","#saveQ","#delQ","#addLine","[data-dell]","#mkPi","#doMk","#newPermit","#newDecl","#bulkPGo","#bulkDGo","#bulkSGo","#bulkP","#bulkD","#bulkS",
+    "#saveBtn","#delShip","#newBtn","#dupBtn","#saveCompany","#saveBank","#addItem","#addCont","#docApp [data-del]","#docApp [data-logo]","#docApp [data-clearlogo]",
+    "#fcyApp [data-fact=reset]","#fcySave","#fcyDel","#fcyApp [data-today]",
+    "#declAdd","#batchSub","#declApp [data-sel]","#selAll","#dRule","#dSave","#dDel","#dSaveCfg","#opApp .pc-x"].join(",");
+  css+="body.sv-noadmin :is("+HIDE_NONADMIN+"){display:none!important}body.sv-ro :is("+HIDE_VIEWER+"){display:none!important}"+
+    ".sv-role{font-size:11.5px;padding:2px 8px;border-radius:999px;background:rgba(242,165,22,.18);color:#F2C86B;font-weight:600;white-space:nowrap}"+
+    ".sv-robar{background:#FAEEDA;color:#854F0B;font-size:13px;padding:7px 20px;text-align:center;font-family:'IBM Plex Sans',Arial,sans-serif}";
   function addCss(){var st=document.createElement("style");st.textContent=css;document.head.appendChild(st)}
   if(document.head)addCss();else document.addEventListener("DOMContentLoaded",addCss);
 
@@ -132,8 +140,24 @@
     document.getElementById("svF2").onsubmit=function(ev){ev.preventDefault();var b=document.getElementById("svGo2"),e=document.getElementById("svErr");b.disabled=true;b.textContent="Checking…";e.textContent="";
       api("POST","/api/verify",{email:loginEmail,code:document.getElementById("svCode").value}).then(function(u){signedIn(u)},function(x){e.textContent=x.message;b.disabled=false;b.textContent="Sign in"})};
   }
+  var ROLE_NAMES={admin:"Administrator",entry:"Data entry",viewer:"Follow-up (view only)"};
+  function lockForms(){
+    if(!document.body.classList.contains("sv-ro"))return;
+    document.querySelectorAll("#opApp dialog :is(input,select,textarea),#fcyDlg :is(input,select,textarea),#declDlg :is(input,select,textarea),#form :is(input,select,textarea),#opMain :is(#sDjb,#sEth,#sCoc,#sBook)").forEach(function(el){if(!el.disabled)el.disabled=true});
+    document.querySelectorAll("[data-act=edit],[data-dact=edit],[data-fact=edit]").forEach(function(b){if(b.textContent!=="View")b.textContent="View"});
+  }
+  function applyRole(){
+    onBody(function(){
+      var r=meUser.role;
+      document.body.classList.toggle("sv-noadmin",r!=="admin");
+      document.body.classList.toggle("sv-ro",r==="viewer");
+      if(r==="viewer"&&!document.querySelector(".sv-robar")){var bar=document.createElement("div");bar.className="sv-robar";bar.setAttribute("role","status");bar.textContent="You are signed in as Follow-up: you can view everything, but not add, change or delete records.";var hdr=document.querySelector(".appsw");if(hdr&&hdr.parentNode)hdr.parentNode.insertBefore(bar,hdr.nextSibling);else document.body.prepend(bar)}
+      if(r==="viewer"){lockForms();new MutationObserver(function(){lockForms()}).observe(document.body,{childList:true,subtree:true})}
+    });
+  }
   function signedIn(u){
     meUser=u;if(box){box.remove();box=null}
+    applyRole();
     openEvents();addUserBar();readyResolve(true);refreshAll();
   }
   api("GET","/api/me").then(signedIn,function(){showLogin()});
@@ -143,7 +167,7 @@
     onBody(function(){
       var right=document.querySelector(".appright")||document.querySelector(".appsw");if(!right||document.getElementById("svUser"))return;
       var s=document.createElement("span");s.id="svUser";
-      s.innerHTML='<span class="nm"></span>'+(meUser.role==="admin"?'<button type="button" id="svUsersBtn">Users</button>':'')+'<button type="button" id="svPwBtn">Password</button><button type="button" id="svOut">Sign out</button>';
+      s.innerHTML='<span class="nm"></span><span class="sv-role">'+esc(ROLE_NAMES[meUser.role]||meUser.role)+'</span>'+(meUser.role==="admin"?'<button type="button" id="svUsersBtn">Users</button>':'')+'<button type="button" id="svPwBtn">Password</button><button type="button" id="svOut">Sign out</button>';
       s.querySelector(".nm").textContent=meUser.name||meUser.email;right.appendChild(s);
       document.getElementById("svOut").onclick=function(){api("POST","/api/logout",{}).then(function(){location.reload()},function(){location.reload()})};
       document.getElementById("svPwBtn").onclick=openPassword;
@@ -162,10 +186,10 @@
     var d=dlg();
     function draw(list,msg,cls){
       d.innerHTML='<div class="sv-h"><h2>Users</h2><button type="button" class="sv-btn" id="svX">Close</button></div><div class="sv-b">'+
-      '<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead><tbody>'+list.map(function(u){return '<tr><td>'+esc(u.name||"")+'</td><td>'+esc(u.email)+'</td><td><span class="sv-chip">'+(u.role==="admin"?"Administrator":"Staff")+'</span>'+(u.active?'':' <span class="sv-chip" style="background:#FCEBEB;color:#A32D2D">Disabled</span>')+'</td><td style="white-space:nowrap;text-align:right"><button type="button" class="sv-btn" data-ed="'+esc(u.email)+'">Edit</button> '+(u.email===meUser.email?'':'<button type="button" class="sv-btn warn" data-rm="'+esc(u.email)+'">Remove</button>')+'</td></tr>'}).join("")+'</tbody></table>'+
-      '<h3 style="font-size:14px;margin:18px 0 0" id="svFormT">Add a user</h3><div class="sv-grid"><label>Full name<input id="svUN"></label><label>Email<input id="svUE" type="email"></label><label>Role<select id="svUR"><option value="staff">Staff</option><option value="admin">Administrator</option></select></label><label>Temporary password (8+ characters)<input id="svUP" type="text" autocomplete="off"></label></div>'+
+      '<table><thead><tr><th>Name</th><th>Email</th><th>Category</th><th></th></tr></thead><tbody>'+list.map(function(u){return '<tr><td>'+esc(u.name||"")+'</td><td>'+esc(u.email)+'</td><td><span class="sv-chip">'+esc(ROLE_NAMES[u.role]||u.role)+'</span>'+(u.active?'':' <span class="sv-chip" style="background:#FCEBEB;color:#A32D2D">Disabled</span>')+'</td><td style="white-space:nowrap;text-align:right"><button type="button" class="sv-btn" data-ed="'+esc(u.email)+'">Edit</button> '+(u.email===meUser.email?'':'<button type="button" class="sv-btn warn" data-rm="'+esc(u.email)+'">Remove</button>')+'</td></tr>'}).join("")+'</tbody></table>'+
+      '<h3 style="font-size:14px;margin:18px 0 0" id="svFormT">Add a user</h3><div class="sv-grid"><label>Full name<input id="svUN"></label><label>Email<input id="svUE" type="email"></label><label>Category<select id="svUR"><option value="entry">Data entry</option><option value="viewer">Follow-up (view only)</option><option value="admin">Administrator</option></select></label><label>Temporary password (8+ characters)<input id="svUP" type="text" autocomplete="off"></label></div>'+
       '<button type="button" class="sv-btn primary" id="svUSave">Save user</button><p class="sv-msg '+(cls||"")+'" id="svMsg" role="status">'+esc(msg||"")+'</p>'+
-      '<p style="font-size:12.5px;color:var(--muted,#5B6676)">Give the person their email and temporary password. At sign-in they receive a code by email, and can then change their password with the Password button.</p></div>';
+      '<p style="font-size:12.5px;color:var(--muted,#5B6676);line-height:1.5"><b>Administrator:</b> everything. <b>Data entry:</b> add, edit and delete records; no Backup/Restore or users. <b>Follow-up:</b> view only.</p><p style="font-size:12.5px;color:var(--muted,#5B6676)">Give the person their email and temporary password. At sign-in they receive a code by email, and can then change their password with the Password button.</p></div>';
       document.getElementById("svX").onclick=function(){d.close()};
       d.querySelectorAll("[data-ed]").forEach(function(b){b.onclick=function(){var u=list.filter(function(x){return x.email===b.dataset.ed})[0];document.getElementById("svFormT").textContent="Edit "+u.email;document.getElementById("svUN").value=u.name||"";document.getElementById("svUE").value=u.email;document.getElementById("svUE").readOnly=true;document.getElementById("svUR").value=u.role;document.getElementById("svUP").placeholder="Leave empty to keep the current password";document.getElementById("svUN").focus()}});
       d.querySelectorAll("[data-rm]").forEach(function(b){b.onclick=function(){if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Click again to remove";setTimeout(function(){b.dataset.armed="";b.textContent="Remove"},4000);return}
