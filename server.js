@@ -61,6 +61,25 @@ function checkSecret(secret, stored) {
     return crypto.timingSafeEqual(key, Buffer.from(keyHex, "hex"));
   } catch (e) { return false; }
 }
+const RESET_MS = 2 * 60 * 60 * 1000, INVITE_MS = 7 * 24 * 60 * 60 * 1000;
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+function sha256(t) { return crypto.createHash("sha256").update(String(t)).digest("hex"); }
+function appUrl(req) {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/+$/, "");
+  const proto = String(req.headers["x-forwarded-proto"] || (PROD ? "https" : "http")).split(",")[0].trim();
+  return `${proto}://${req.headers["x-forwarded-host"] || req.headers.host}`;
+}
+function isInvited(u) { return !String(u.pass_hash || "").startsWith("scrypt$"); }
+async function makeLink(req, email, kind) {
+  const token = crypto.randomBytes(32).toString("hex");
+  await store.saveReset(sha256(token), email, kind, Date.now() + (kind === "invite" ? INVITE_MS : RESET_MS));
+  return `${appUrl(req)}/?reset=${token}`;
+}
+async function mailLink(u, kind, link) {
+  try { if (kind === "invite") await mailer.sendInvite(u.email, u.name, link); else await mailer.sendReset(u.email, u.name, link); return { emailed: mailer.configured, error: mailer.configured ? "" : "Email isn't set up on the server." }; }
+  catch (e) { console.error("Email failed:", e.message, "| What to fix:", mailHint(e.message)); return { emailed: false, error: "The email could not be sent. Copy the link and send it another way." }; }
+}
+function publicUser(u) { return { email: u.email, name: u.name || "", role: normRole(u.role), active: !!Number(u.active), invited: isInvited(u), created_at: u.created_at || null, last_login: u.last_login || null }; }
 const attempts = new Map();
 function limited(key, max, windowMs) {
   const now = Date.now(), a = (attempts.get(key) || []).filter(t => now - t < windowMs);
@@ -105,6 +124,7 @@ async function api(req, res, url) {
     const b = await readBody(req), email = normEmail(b.email);
     if (limited("login:" + email, 8, 15 * 60 * 1000) || limited("ip:" + ip(req), 30, 15 * 60 * 1000)) return send(res, 429, { error: "Too many attempts. Try again in 15 minutes." });
     const u = await store.getUser(email);
+    if (u && u.active && isInvited(u)) return send(res, 401, { error: "Your account isn't activated yet. Open the invitation email and choose your password, or ask the administrator to send a new link." });
     if (!u || !u.active || !checkSecret(b.password || "", u.pass_hash)) return send(res, 401, { error: "Email or password is not correct." });
     const codeToLog = process.env.CODE_TO_LOG === "1";
     if (PROD && !mailer.configured && !codeToLog) return send(res, 500, { error: "Email sending is not set up on the server. Ask the administrator." });
@@ -130,7 +150,40 @@ async function api(req, res, url) {
     const u = await store.getUser(email); if (!u || !u.active) return send(res, 401, { error: "This account is not active." });
     const token = crypto.randomBytes(32).toString("hex");
     await store.createSession(token, email, Date.now() + SESSION_MS);
+    try { await store.setLastLogin(email, Date.now()); } catch (e) {}
     return send(res, 200, { email: u.email, name: u.name, role: normRole(u.role) }, { "Set-Cookie": sessionCookie(token, SESSION_MS / 1000) });
+  }
+
+  if (p === "/api/forgot" && m === "POST") {
+    const b = await readBody(req), email = normEmail(b.email);
+    if (limited("forgot:" + email, 3, 60 * 60 * 1000) || limited("fip:" + ip(req), 10, 60 * 60 * 1000)) return send(res, 429, { error: "Too many requests. Try again later." });
+    const u = await store.getUser(email);
+    if (u && u.active) {
+      const kind = isInvited(u) ? "invite" : "reset", link = await makeLink(req, email, kind), r = await mailLink(u, kind, link);
+      if (process.env.CODE_TO_LOG === "1") console.log(`[CODE_TO_LOG is on] Password link for ${email}: ${link}`);
+      if (!r.emailed) console.warn(`Password link for ${email} could not be emailed.`);
+    }
+    return send(res, 200, { ok: true });
+  }
+
+  if (p === "/api/reset" && m === "GET") {
+    const r = await store.getReset(sha256(url.searchParams.get("token") || ""));
+    if (!r || r.expires < Date.now()) return send(res, 400, { error: "This link has expired or was already used. Ask for a new one." });
+    const u = await store.getUser(r.email);
+    return send(res, 200, { email: r.email, name: u ? u.name : "", kind: r.kind });
+  }
+
+  if (p === "/api/reset" && m === "POST") {
+    const b = await readBody(req);
+    if (limited("reset:" + ip(req), 20, 15 * 60 * 1000)) return send(res, 429, { error: "Too many attempts. Try again later." });
+    const r = await store.getReset(sha256(b.token || ""));
+    if (!r || r.expires < Date.now()) return send(res, 400, { error: "This link has expired or was already used. Ask for a new one." });
+    if (String(b.password || "").length < 8) return send(res, 400, { error: "Use a password of at least 8 characters." });
+    const u = await store.getUser(r.email);
+    if (!u) return send(res, 400, { error: "This account no longer exists." });
+    await store.saveUser(Object.assign({}, u, { pass_hash: hashSecret(b.password), active: true }));
+    await store.delResets(r.email); await store.delSessionsFor(r.email);
+    return send(res, 200, { ok: true, email: r.email });
   }
 
   if (p === "/api/logout" && m === "POST") {
@@ -161,22 +214,49 @@ async function api(req, res, url) {
   // Users (administrators only)
   if (p === "/api/users" || p.startsWith("/api/users/")) {
     if (user.role !== "admin") return send(res, 403, { error: "Only administrators can manage users." });
-    if (p === "/api/users" && m === "GET") return send(res, 200, (await store.listUsers()).map(u => Object.assign({}, u, { role: normRole(u.role) })));
+    if (p === "/api/users" && m === "GET") return send(res, 200, (await store.listUsers()).map(publicUser));
     if (p === "/api/users" && m === "POST") {
-      const b = await readBody(req), email = normEmail(b.email);
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return send(res, 400, { error: "Enter a valid email." });
-      const existing = await store.getUser(email);
-      if (!existing && String(b.password || "").length < 8) return send(res, 400, { error: "Give a temporary password of at least 8 characters." });
+      const b = await readBody(req), email = normEmail(b.email), original = normEmail(b.originalEmail || "");
+      if (!EMAIL_RE.test(email)) return send(res, 400, { error: "Enter a valid email." });
+      const role = normRole(b.role), name = String(b.name || "").trim().slice(0, 190);
+      if (!name) return send(res, 400, { error: "Enter the person's full name." });
       if (b.password && String(b.password).length < 8) return send(res, 400, { error: "Passwords need at least 8 characters." });
-      const role = normRole(b.role);
-      if (existing && existing.email === user.email && role !== "admin") return send(res, 400, { error: "You cannot remove your own administrator role." });
-      await store.saveUser({ email, name: String(b.name || (existing && existing.name) || "").slice(0, 190), role, pass_hash: b.password ? hashSecret(b.password) : existing.pass_hash, active: b.active === false ? false : true, created_at: existing ? existing.created_at : Date.now() });
-      return send(res, 200, { ok: true });
+      // Edit an existing user
+      if (original) {
+        let u = await store.getUser(original);
+        if (!u) return send(res, 404, { error: "User not found." });
+        const self = original === user.email;
+        if (self && role !== "admin") return send(res, 400, { error: "You can't remove your own administrator category." });
+        if (self && b.active === false) return send(res, 400, { error: "You can't disable your own account." });
+        if (email !== original) {
+          if (await store.getUser(email)) return send(res, 400, { error: "Another user already has this email." });
+          if (self) return send(res, 400, { error: "To change your own email, ask another administrator." });
+          await store.renameUser(original, email); u = await store.getUser(email);
+        }
+        const active = b.active === false ? false : true;
+        await store.saveUser(Object.assign({}, u, { name, role, active, pass_hash: b.password ? hashSecret(b.password) : u.pass_hash }));
+        if (!active || b.password) await store.delSessionsFor(email);
+        return send(res, 200, { ok: true });
+      }
+      // Create a new user
+      if (await store.getUser(email)) return send(res, 400, { error: "A user with this email already exists." });
+      if (!b.invite && String(b.password || "").length < 8) return send(res, 400, { error: "Give a temporary password of at least 8 characters, or choose to send an invitation." });
+      const nu = { email, name, role, active: true, created_at: Date.now(), pass_hash: b.invite ? "invite:" + crypto.randomBytes(16).toString("hex") : hashSecret(b.password) };
+      await store.saveUser(nu);
+      if (!b.invite) return send(res, 200, { ok: true });
+      const link = await makeLink(req, email, "invite"), r = await mailLink(nu, "invite", link);
+      return send(res, 200, Object.assign({ ok: true, link }, r));
     }
-    const target = normEmail(decodeURIComponent(p.slice("/api/users/".length)));
-    if (m === "DELETE") {
+    const rest = p.slice("/api/users/".length), parts = rest.split("/"), target = normEmail(decodeURIComponent(parts[0]));
+    if (parts[1] === "reset" && m === "POST") {
+      const u = await store.getUser(target); if (!u) return send(res, 404, { error: "User not found." });
+      if (!u.active) return send(res, 400, { error: "This account is disabled. Enable it first." });
+      const kind = isInvited(u) ? "invite" : "reset", link = await makeLink(req, target, kind), r = await mailLink(u, kind, link);
+      return send(res, 200, Object.assign({ ok: true, link, kind }, r));
+    }
+    if (parts.length === 1 && m === "DELETE") {
       if (target === user.email) return send(res, 400, { error: "You cannot remove your own account." });
-      await store.deleteUser(target); return send(res, 200, { ok: true });
+      await store.delResets(target); await store.deleteUser(target); return send(res, 200, { ok: true });
     }
     return send(res, 405, { error: "method" });
   }

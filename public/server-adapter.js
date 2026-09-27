@@ -98,6 +98,15 @@
   '.sv-b{padding:14px 18px;max-height:70vh;overflow:auto;font-size:14px}.sv-b table{width:100%;border-collapse:collapse;font-size:13.5px}.sv-b th{text-align:left;font-size:12px;color:var(--muted,#5B6676);padding:6px;border-bottom:1px solid var(--line,#D5DBE3)}.sv-b td{padding:8px 6px;border-bottom:1px solid var(--line,#D5DBE3)}'+
   '.sv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin:12px 0}.sv-grid label{font-size:12.5px;color:var(--muted,#5B6676);display:flex;flex-direction:column;gap:3px}.sv-grid input,.sv-grid select{padding:7px 8px;border:1px solid var(--line,#D5DBE3);border-radius:6px;font-size:14px;background:var(--bg,#EEF1F4);color:inherit}'+
   '.sv-btn{border:1px solid var(--line,#D5DBE3);background:var(--panel,#fff);color:inherit;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px}.sv-btn.primary{background:#1E5F83;border-color:#1E5F83;color:#fff}.sv-btn.warn{color:#A32D2D;border-color:#A32D2D}'+
+  '#svDlg.sv-wide{width:min(1040px,96vw)}.sv-count{font-size:12px;background:var(--bg,#EEF1F4);border:1px solid var(--line,#D5DBE3);border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:2px;font-weight:600}'+
+  '.sv-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}.sv-stats div{border:1px solid var(--line,#D5DBE3);border-radius:8px;padding:8px 12px;background:var(--bg,#EEF1F4)}.sv-stats b{display:block;font-size:18px}.sv-stats span{font-size:12px;color:var(--muted,#5B6676)}'+
+  '.sv-search{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line,#D5DBE3);border-radius:6px;font-size:14px;margin-bottom:10px;background:var(--panel,#fff);color:inherit}'+
+  '.sv-tw{overflow-x:auto}.sv-acts{text-align:right;white-space:nowrap}.sv-acts .sv-btn{margin-left:4px}.sv-small{font-size:12.5px;color:var(--muted,#5B6676)}'+
+  '.sv-st{font-size:11.5px;padding:1px 8px;border-radius:999px;font-weight:600}.sv-st.on{background:#EAF3DE;color:#27500A}.sv-st.inv{background:#FAEEDA;color:#854F0B}.sv-st.off{background:#FCEBEB;color:#A32D2D}'+
+  '.sv-note{border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13.5px;border:1px solid var(--line,#D5DBE3)}.sv-note.ok{background:#EAF3DE;color:#27500A;border-color:#C0DD97}.sv-note.warn{background:#FAEEDA;color:#854F0B;border-color:#FAC775}.sv-note.err{background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1}'+
+  '.sv-linkrow{display:flex;gap:6px;margin:8px 0 4px}.sv-linkrow input{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--line,#D5DBE3);border-radius:6px;font-size:12.5px;background:#fff;color:#16202E}'+
+  '.sv-fs{border:1px solid var(--line,#D5DBE3);border-radius:8px;padding:10px 12px;margin:4px 0 0}.sv-fs legend{font-weight:600;font-size:13.5px;padding:0 6px}.sv-radio{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin:6px 0;cursor:pointer}.sv-pw{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted,#5B6676);margin-top:8px}.sv-pw input{padding:7px 8px;border:1px solid var(--line,#D5DBE3);border-radius:6px;font-size:14px;background:var(--bg,#EEF1F4);color:inherit}'+
+  '@media (max-width:640px){.sv-stats{grid-template-columns:1fr}.sv-grid{grid-template-columns:1fr}}'+
   '.sv-msg{font-size:13px;min-height:18px;margin-top:8px}.sv-msg.err{color:#A32D2D}.sv-msg.ok{color:#27500A}.sv-chip{font-size:11.5px;padding:1px 8px;border-radius:999px;background:#E6F1FB;color:#0C447C}';
   var HIDE_NONADMIN="#backupBtn,#bkDlg";
   var HIDE_VIEWER=["#addOrder","#addExtra","#addProd","#addPermit","#addDecl","#saveSet","#opApp [data-act=del]","#saveOrder","#delOrder","#saveP","#delProd","#saveQ","#delQ","#addLine","[data-dell]","#mkPi","#doMk","#newPermit","#newDecl","#bulkPGo","#bulkDGo","#bulkSGo","#bulkP","#bulkD","#bulkS",
@@ -124,11 +133,47 @@
       '<label>Email<input id="svEmail" type="email" autocomplete="username" required value="'+esc(loginEmail)+'"></label>'+
       '<label>Password<input id="svPass" type="password" autocomplete="current-password" required></label>'+
       '<button class="sv-go" id="svGo1" type="submit">Continue</button><p class="sv-err" id="svErr" role="alert">'+esc(msg||"")+'</p>'+
-      '<p style="font-size:12.5px;margin:6px 0 0">Forgot your password? Ask your administrator to set a new one.</p></form>';
+      '<button type="button" class="sv-link" id="svForgot">Forgot password?</button></form>';
     var f=document.getElementById("svF1");(loginEmail?document.getElementById("svPass"):document.getElementById("svEmail")).focus();
+    document.getElementById("svForgot").onclick=function(){loginEmail=document.getElementById("svEmail").value.trim();stepForgot()};
     f.onsubmit=function(ev){ev.preventDefault();var b=document.getElementById("svGo1"),e=document.getElementById("svErr");b.disabled=true;b.textContent="Sending code…";e.textContent="";
       loginEmail=document.getElementById("svEmail").value.trim();
       api("POST","/api/login",{email:loginEmail,password:document.getElementById("svPass").value}).then(function(){step2()},function(x){e.textContent=x.message;b.disabled=false;b.textContent="Continue"})};
+  }
+  function stepForgot(){
+    box.innerHTML='<form class="sv-card" id="svFF" aria-label="Forgot password"><div class="sv-mark" aria-hidden="true">B</div><h1>Forgot your password?</h1><p>Enter your email. If it has an account, we\'ll send you a link to choose a new password.</p>'+
+      '<label>Email<input id="svFE" type="email" autocomplete="username" required value="'+esc(loginEmail)+'"></label>'+
+      '<button class="sv-go" id="svFGo" type="submit">Send reset link</button><p class="sv-err" id="svErr" role="alert"></p>'+
+      '<button type="button" class="sv-link" id="svBack">Back to sign in</button></form>';
+    document.getElementById("svFE").focus();document.getElementById("svBack").onclick=function(){step1()};
+    document.getElementById("svFF").onsubmit=function(ev){ev.preventDefault();var b=document.getElementById("svFGo"),e=document.getElementById("svErr");b.disabled=true;b.textContent="Sending…";e.textContent="";
+      loginEmail=document.getElementById("svFE").value.trim();
+      api("POST","/api/forgot",{email:loginEmail}).then(function(){
+        box.innerHTML='<div class="sv-card"><div class="sv-mark" aria-hidden="true">B</div><h1>Check your email</h1><p>If <b>'+esc(loginEmail)+'</b> has an account, a link to choose a new password is on its way. It\'s valid for 2 hours. Check your Spam folder too.</p><p>No email after a few minutes? Ask your administrator to send you a reset link.</p><button type="button" class="sv-go" id="svBack2">Back to sign in</button></div>';
+        document.getElementById("svBack2").onclick=function(){step1()};
+      },function(x){e.textContent=x.message;b.disabled=false;b.textContent="Send reset link"})};
+  }
+  function stepReset(token){
+    box.innerHTML='<div class="sv-card"><div class="sv-mark" aria-hidden="true">B</div><h1>Checking your link…</h1></div>';
+    api("GET","/api/reset?token="+encodeURIComponent(token)).then(function(info){
+      var inv=info.kind==="invite";
+      box.innerHTML='<form class="sv-card" id="svFR" aria-label="Choose password"><div class="sv-mark" aria-hidden="true">B</div><h1>'+(inv?"Welcome"+(info.name?", "+esc(info.name):"")+"!":"Choose a new password")+'</h1><p>'+(inv?"Choose a password for your account <b>"+esc(info.email)+"</b>.":"For <b>"+esc(info.email)+"</b>.")+'</p>'+
+        '<label>New password (at least 8 characters)<input id="svN1" type="password" autocomplete="new-password" required minlength="8"></label>'+
+        '<label>Type it again<input id="svN2" type="password" autocomplete="new-password" required minlength="8"></label>'+
+        '<button class="sv-go" id="svRGo" type="submit">Save password</button><p class="sv-err" id="svErr" role="alert"></p></form>';
+      document.getElementById("svN1").focus();
+      document.getElementById("svFR").onsubmit=function(ev){ev.preventDefault();var e=document.getElementById("svErr"),b=document.getElementById("svRGo"),a1=document.getElementById("svN1").value,a2=document.getElementById("svN2").value;
+        if(a1.length<8){e.textContent="Use at least 8 characters.";return}if(a1!==a2){e.textContent="The two passwords are not the same.";return}
+        b.disabled=true;b.textContent="Saving…";e.textContent="";
+        api("POST","/api/reset",{token:token,password:a1}).then(function(r){
+          try{history.replaceState(null,"",location.pathname)}catch(x){}
+          loginEmail=r.email||info.email;step1();var er=document.getElementById("svErr");er.style.color="#27500A";er.textContent="Your password is saved. Sign in now.";document.getElementById("svPass").focus()},
+          function(x){e.textContent=x.message;b.disabled=false;b.textContent="Save password"})};
+    },function(x){
+      try{history.replaceState(null,"",location.pathname)}catch(y){}
+      box.innerHTML='<div class="sv-card"><div class="sv-mark" aria-hidden="true">B</div><h1>This link doesn\'t work</h1><p>'+esc(x.message)+'</p><button type="button" class="sv-go" id="svF3">Ask for a new link</button><button type="button" class="sv-link" id="svBack">Back to sign in</button></div>';
+      document.getElementById("svF3").onclick=function(){stepForgot()};document.getElementById("svBack").onclick=function(){step1()};
+    });
   }
   function step2(msg){
     box.innerHTML='<form class="sv-card" id="svF2" aria-label="Enter code"><div class="sv-mark" aria-hidden="true">B</div><h1>Check your email</h1><p>We sent a 6-digit code to <b>'+esc(loginEmail)+'</b>. It expires in 10 minutes.</p>'+
@@ -160,7 +205,9 @@
     applyRole();
     openEvents();addUserBar();readyResolve(true);refreshAll();
   }
-  api("GET","/api/me").then(signedIn,function(){showLogin()});
+  var resetToken=null;try{resetToken=new URLSearchParams(location.search).get("reset")}catch(e){}
+  if(resetToken){onBody(function(){box=document.createElement("div");box.className="sv-ov";document.body.appendChild(box);stepReset(resetToken)})}
+  else api("GET","/api/me").then(signedIn,function(){showLogin()});
 
   /* ---------- header: user, users admin, password ---------- */
   function addUserBar(){
@@ -182,24 +229,67 @@
       api("POST","/api/password",{current:document.getElementById("svCur").value,next:document.getElementById("svNew").value}).then(function(){m.className="sv-msg ok";m.textContent="Password changed."},function(x){m.className="sv-msg err";m.textContent=x.message})};
     if(!d.open)d.showModal();
   }
+  function fdt(t){if(!t)return "Never";var d=new Date(Number(t));return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
   function openUsers(){
-    var d=dlg();
-    function draw(list,msg,cls){
-      d.innerHTML='<div class="sv-h"><h2>Users</h2><button type="button" class="sv-btn" id="svX">Close</button></div><div class="sv-b">'+
-      '<table><thead><tr><th>Name</th><th>Email</th><th>Category</th><th></th></tr></thead><tbody>'+list.map(function(u){return '<tr><td>'+esc(u.name||"")+'</td><td>'+esc(u.email)+'</td><td><span class="sv-chip">'+esc(ROLE_NAMES[u.role]||u.role)+'</span>'+(u.active?'':' <span class="sv-chip" style="background:#FCEBEB;color:#A32D2D">Disabled</span>')+'</td><td style="white-space:nowrap;text-align:right"><button type="button" class="sv-btn" data-ed="'+esc(u.email)+'">Edit</button> '+(u.email===meUser.email?'':'<button type="button" class="sv-btn warn" data-rm="'+esc(u.email)+'">Remove</button>')+'</td></tr>'}).join("")+'</tbody></table>'+
-      '<h3 style="font-size:14px;margin:18px 0 0" id="svFormT">Add a user</h3><div class="sv-grid"><label>Full name<input id="svUN"></label><label>Email<input id="svUE" type="email"></label><label>Category<select id="svUR"><option value="entry">Data entry</option><option value="viewer">Follow-up (view only)</option><option value="admin">Administrator</option></select></label><label>Temporary password (8+ characters)<input id="svUP" type="text" autocomplete="off"></label></div>'+
-      '<button type="button" class="sv-btn primary" id="svUSave">Save user</button><p class="sv-msg '+(cls||"")+'" id="svMsg" role="status">'+esc(msg||"")+'</p>'+
-      '<p style="font-size:12.5px;color:var(--muted,#5B6676);line-height:1.5"><b>Administrator:</b> everything. <b>Data entry:</b> add, edit and delete records; no Backup/Restore or users. <b>Follow-up:</b> view only.</p><p style="font-size:12.5px;color:var(--muted,#5B6676)">Give the person their email and temporary password. At sign-in they receive a code by email, and can then change their password with the Password button.</p></div>';
+    var d=dlg();d.classList.add("sv-wide");
+    var list=[],q="",view="list",form=null,notice=null;
+    function status(u){return !u.active?'<span class="sv-st off">Disabled</span>':u.invited?'<span class="sv-st inv">Invited</span>':'<span class="sv-st on">Active</span>'}
+    function noticeHtml(){if(!notice)return "";
+      return '<div class="sv-note '+(notice.cls||"")+'" role="status"><div>'+esc(notice.text)+'</div>'+(notice.link?'<div class="sv-linkrow"><input readonly value="'+esc(notice.link)+'" id="svLinkBox" aria-label="Password link"><button type="button" class="sv-btn primary" id="svCopy">Copy link</button></div><div class="sv-small">You can paste this link into WhatsApp or another message. It works once, and expires in '+(notice.kind==="invite"?"7 days":"2 hours")+'.</div>':'')+'</div>'}
+    function draw(){
+      if(view==="form")return drawForm();
+      var f=list.filter(function(u){if(!q)return true;var t=(u.name+" "+u.email+" "+(ROLE_NAMES[u.role]||"")).toLowerCase();return t.indexOf(q.toLowerCase())>=0});
+      var counts={all:list.length,active:list.filter(function(u){return u.active&&!u.invited}).length,inv:list.filter(function(u){return u.active&&u.invited}).length,off:list.filter(function(u){return !u.active}).length};
+      d.innerHTML='<div class="sv-h"><h2 id="svDT">Users <span class="sv-count">'+counts.all+'</span></h2><div style="display:flex;gap:8px"><button type="button" class="sv-btn primary" id="svAdd">+ Add user</button><button type="button" class="sv-btn" id="svX">Close</button></div></div><div class="sv-b">'+
+      noticeHtml()+
+      '<div class="sv-stats"><div><b>'+counts.active+'</b><span>Active</span></div><div><b>'+counts.inv+'</b><span>Invited, not activated</span></div><div><b>'+counts.off+'</b><span>Disabled</span></div></div>'+
+      '<input type="search" id="svQ" class="sv-search" placeholder="Search name, email or category" value="'+esc(q)+'">'+
+      '<div class="sv-tw"><table><thead><tr><th>Name</th><th>Email</th><th>Category</th><th>Status</th><th>Last sign-in</th><th style="text-align:right">Actions</th></tr></thead><tbody>'+
+      (f.length?f.map(function(u){var me=u.email===meUser.email;return '<tr><td><b>'+esc(u.name||"—")+'</b>'+(me?' <span class="sv-small">(you)</span>':'')+'</td><td>'+esc(u.email)+'</td><td><span class="sv-chip">'+esc(ROLE_NAMES[u.role]||u.role)+'</span></td><td>'+status(u)+'</td><td class="sv-small">'+fdt(u.last_login)+'</td>'+
+        '<td class="sv-acts"><button type="button" class="sv-btn" data-ed="'+esc(u.email)+'">Edit</button>'+(u.active?'<button type="button" class="sv-btn" data-rs="'+esc(u.email)+'">'+(u.invited?"Resend invitation":"Send password reset")+'</button>':'')+(me?'':'<button type="button" class="sv-btn warn" data-rm="'+esc(u.email)+'">Remove</button>')+'</td></tr>'}).join(""):'<tr><td colspan="6" class="sv-small">No users match.</td></tr>')+
+      '</tbody></table></div>'+
+      '<p class="sv-small" style="margin-top:12px;line-height:1.5"><b>Administrator:</b> everything. <b>Data entry:</b> add, edit and delete records; no Backup/Restore or users. <b>Follow-up:</b> view only.</p></div>';
       document.getElementById("svX").onclick=function(){d.close()};
-      d.querySelectorAll("[data-ed]").forEach(function(b){b.onclick=function(){var u=list.filter(function(x){return x.email===b.dataset.ed})[0];document.getElementById("svFormT").textContent="Edit "+u.email;document.getElementById("svUN").value=u.name||"";document.getElementById("svUE").value=u.email;document.getElementById("svUE").readOnly=true;document.getElementById("svUR").value=u.role;document.getElementById("svUP").placeholder="Leave empty to keep the current password";document.getElementById("svUN").focus()}});
+      document.getElementById("svAdd").onclick=function(){form={isNew:true,name:"",email:"",role:"entry",active:true,mode:"invite",password:""};view="form";notice=null;draw()};
+      var qs=document.getElementById("svQ");qs.oninput=function(){q=this.value;var p=this.selectionStart;draw();var n=document.getElementById("svQ");n.focus();n.setSelectionRange(p,p)};
+      var cp=document.getElementById("svCopy");if(cp)cp.onclick=function(){var box=document.getElementById("svLinkBox");box.select();var done=function(){cp.textContent="Copied"};if(navigator.clipboard)navigator.clipboard.writeText(box.value).then(done,function(){document.execCommand("copy");done()});else{document.execCommand("copy");done()}};
+      d.querySelectorAll("[data-ed]").forEach(function(b){b.onclick=function(){var u=list.filter(function(x){return x.email===b.dataset.ed})[0];form={isNew:false,original:u.email,name:u.name,email:u.email,role:u.role,active:u.active,password:"",invited:u.invited};view="form";notice=null;draw()}});
+      d.querySelectorAll("[data-rs]").forEach(function(b){b.onclick=function(){b.disabled=true;b.textContent="Sending…";
+        api("POST","/api/users/"+encodeURIComponent(b.dataset.rs)+"/reset",{}).then(function(r){notice={cls:r.emailed?"ok":"warn",text:(r.emailed?(r.kind==="invite"?"Invitation":"Password reset link")+" sent to "+b.dataset.rs+".":(r.error||"The email could not be sent.")+" Send this link to "+b.dataset.rs+" yourself:"),link:r.link,kind:r.kind};load()},function(x){notice={cls:"err",text:x.message};load()})}});
       d.querySelectorAll("[data-rm]").forEach(function(b){b.onclick=function(){if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Click again to remove";setTimeout(function(){b.dataset.armed="";b.textContent="Remove"},4000);return}
-        api("DELETE","/api/users/"+encodeURIComponent(b.dataset.rm)).then(function(){load("User removed.","ok")},function(x){load(x.message,"err")})}});
-      document.getElementById("svUSave").onclick=function(){
-        var body={name:document.getElementById("svUN").value.trim(),email:document.getElementById("svUE").value.trim(),role:document.getElementById("svUR").value};
-        var pw=document.getElementById("svUP").value;if(pw)body.password=pw;
-        api("POST","/api/users",body).then(function(){load("Saved "+body.email+".","ok")},function(x){var m=document.getElementById("svMsg");m.className="sv-msg err";m.textContent=x.message})};
+        api("DELETE","/api/users/"+encodeURIComponent(b.dataset.rm)).then(function(){notice={cls:"ok",text:"Removed "+b.dataset.rm+"."};load()},function(x){notice={cls:"err",text:x.message};draw()})}});
     }
-    function load(msg,cls){api("GET","/api/users").then(function(list){draw(list,msg,cls)},function(x){draw([],x.message,"err")})}
+    function drawForm(){
+      var f=form,me=!f.isNew&&f.original===meUser.email;
+      d.innerHTML='<div class="sv-h"><h2 id="svDT">'+(f.isNew?"Add user":"Edit user")+'</h2><button type="button" class="sv-btn" id="svBackL">Back to users</button></div><div class="sv-b">'+
+      '<div class="sv-grid"><label>Full name<input id="svUN" value="'+esc(f.name)+'" autocomplete="off"></label><label>Email<input id="svUE" type="email" value="'+esc(f.email)+'"'+(me?" readonly":"")+' autocomplete="off"></label>'+
+      '<label>Category<select id="svUR"'+(me?" disabled":"")+'><option value="entry">Data entry</option><option value="viewer">Follow-up (view only)</option><option value="admin">Administrator</option></select></label>'+
+      (f.isNew?'':'<label>Status<select id="svUA"'+(me?" disabled":"")+'><option value="1">Active, can sign in</option><option value="0">Disabled, cannot sign in</option></select></label>')+'</div>'+
+      (f.isNew?'<fieldset class="sv-fs"><legend>How will they get their password?</legend><label class="sv-radio"><input type="radio" name="svMode" value="invite"'+(f.mode==="invite"?" checked":"")+'> <span><b>Email an invitation</b> (recommended). They choose their own password from a link.</span></label><label class="sv-radio"><input type="radio" name="svMode" value="password"'+(f.mode==="password"?" checked":"")+'> <span><b>Set a temporary password</b> and give it to them yourself.</span></label>'+
+        '<label class="sv-pw" id="svPWrap"'+(f.mode==="password"?"":" hidden")+'>Temporary password (8+ characters)<input id="svUP" type="text" autocomplete="off" value="'+esc(f.password)+'"></label></fieldset>':
+        '<fieldset class="sv-fs"><legend>Password</legend><p class="sv-small" style="margin:0 0 8px">To let them choose a new password, use <b>Send password reset</b> in the list. Or set one here and give it to them yourself:</p><label class="sv-pw">New password (leave empty to keep the current one)<input id="svUP" type="text" autocomplete="off"></label></fieldset>')+
+      (me?'<p class="sv-small">You can\'t change your own category, status or email here.</p>':'')+
+      '<div style="display:flex;gap:8px;margin-top:14px"><button type="button" class="sv-btn primary" id="svUSave">'+(f.isNew?(f.mode==="invite"?"Create and send invitation":"Create user"):"Save changes")+'</button><button type="button" class="sv-btn" id="svCancelF">Cancel</button></div><p class="sv-msg" id="svMsg" role="status"></p></div>';
+      document.getElementById("svUR").value=f.role;var ua=document.getElementById("svUA");if(ua)ua.value=f.active?"1":"0";
+      document.getElementById("svBackL").onclick=document.getElementById("svCancelF").onclick=function(){view="list";draw()};
+      d.querySelectorAll('input[name=svMode]').forEach(function(r){r.onchange=function(){f.name=document.getElementById("svUN").value;f.email=document.getElementById("svUE").value;f.role=document.getElementById("svUR").value;f.mode=r.value;drawForm()}});
+      document.getElementById("svUN").focus();
+      document.getElementById("svUSave").onclick=function(){
+        var m=document.getElementById("svMsg"),btn=this;
+        var body={name:document.getElementById("svUN").value.trim(),email:document.getElementById("svUE").value.trim(),role:document.getElementById("svUR").value};
+        if(!f.isNew){body.originalEmail=f.original;body.active=document.getElementById("svUA").value==="1"}
+        var pw=(document.getElementById("svUP")||{}).value||"";
+        if(f.isNew){if(f.mode==="invite")body.invite=true;else body.password=pw}else if(pw)body.password=pw;
+        btn.disabled=true;m.className="sv-msg";m.textContent="Saving…";
+        api("POST","/api/users",body).then(function(r){
+          view="list";
+          if(f.isNew&&body.invite)notice={cls:r.emailed?"ok":"warn",text:r.emailed?"Invitation sent to "+body.email+".":(r.error||"The email could not be sent.")+" Send this link to "+body.email+" yourself:",link:r.link,kind:"invite"};
+          else notice={cls:"ok",text:(f.isNew?"Created ":"Saved ")+body.email+"."+(f.isNew?" Give them their email and temporary password.":"")};
+          load()},function(x){btn.disabled=false;m.className="sv-msg err";m.textContent=x.message})};
+    }
+    function load(){api("GET","/api/users").then(function(l){list=l;draw()},function(x){list=[];notice={cls:"err",text:x.message};draw()})}
     if(!d.open)d.showModal();load();
+    d.addEventListener("close",function(){d.classList.remove("sv-wide")},{once:true});
   }
+
 })();
