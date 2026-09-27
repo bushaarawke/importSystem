@@ -67,11 +67,15 @@ async function currentUser(req) {
   return { email: u.email, name: u.name, role: u.role, token: t };
 }
 async function bootstrapAdmin() {
-  if ((await store.countUsers()) > 0) return;
-  const email = normEmail(process.env.ADMIN_EMAIL), pass = process.env.ADMIN_PASSWORD;
-  if (!email || !pass) { console.warn("No users yet. Set ADMIN_EMAIL and ADMIN_PASSWORD to create the first administrator."); return; }
-  await store.saveUser({ email, name: process.env.ADMIN_NAME || "Administrator", role: "admin", pass_hash: hashSecret(pass), active: true, created_at: Date.now() });
-  console.log(`First administrator created: ${email}`);
+  const email = normEmail(process.env.ADMIN_EMAIL), pass = String(process.env.ADMIN_PASSWORD || "").trim().replace(/^["']|["']$/g, "");
+  const reset = process.env.ADMIN_RESET === "1";
+  const count = await store.countUsers();
+  if (count > 0 && !reset) { console.log(`${count} user(s) found. To set the administrator's email and password again, add ADMIN_RESET=1 and redeploy.`); return; }
+  if (!email || !pass) { console.warn("No administrator set. Add ADMIN_EMAIL and ADMIN_PASSWORD (and ADMIN_RESET=1 if users already exist), then redeploy."); return; }
+  if (pass.length < 8) { console.warn("ADMIN_PASSWORD must have at least 8 characters. Administrator not set."); return; }
+  const existing = await store.getUser(email);
+  await store.saveUser({ email, name: process.env.ADMIN_NAME || (existing && existing.name) || "Administrator", role: "admin", pass_hash: hashSecret(pass), active: true, created_at: existing ? existing.created_at : Date.now() });
+  console.log(`${reset ? "Administrator reset" : "First administrator created"}: ${email}. ${reset ? "Remove ADMIN_RESET and ADMIN_PASSWORD now, then redeploy." : "Remove ADMIN_PASSWORD after signing in."}`);
 }
 
 /* ---------- API ---------- */
