@@ -255,13 +255,94 @@ body{background:#F4F6F8}
 .bk-due{background:#FAEEDA;color:#854F0B;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:500}
 .bk-msg{padding:10px 18px 14px;font-size:13.5px;min-height:20px;color:var(--muted)}
 .bk-msg.ok{color:#27500A}.bk-msg.err{color:#A32D2D}
+
+/* ===== Harbor layout ===== */
+.appsw .ts{display:none}
+.appsw .navlabel{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#7F9AAD;font-weight:600;padding:0 12px 4px}
+.appsw .appmenu{display:none}
+:is(#opApp,#fcyApp,#declApp) .kpi{border-left:1px solid var(--line);border-radius:12px}
+:is(#opApp,#fcyApp,#declApp) .kpi.alert{background:#FFF4F2;border-color:#F3C5BE}
+:is(#opApp,#fcyApp,#declApp) .card{border-radius:12px;border-color:#E1E6EB}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) :is(#opApp,#fcyApp,#declApp) .kpi.alert{background:#2A1718;border-color:#5A2A2C}}
+:root[data-theme="dark"] :is(#opApp,#fcyApp,#declApp) .kpi.alert{background:#2A1718;border-color:#5A2A2C}
+@media (min-width:900px){
+  body{padding-left:248px}
+  .appsw{position:fixed;left:0;top:0;bottom:0;width:248px;box-sizing:border-box;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:calc(20px + env(safe-area-inset-top,0px)) 14px 16px;gap:22px;min-height:0;z-index:30;overflow-y:auto}
+  .appsw .brand{margin:0;padding:4px 8px}
+  .appsw .brand div{display:block!important}
+  .appsw .brand b{font-size:15px}
+  .apptabs{flex-direction:column;align-self:stretch;overflow:visible;gap:4px}
+  .appsw .apptabs button{min-height:44px;height:auto;border:0;border-radius:8px;padding:0 12px;gap:12px;justify-content:flex-start;font-size:14px;background:none;color:#C9D8E2;width:100%}
+  .appsw .apptabs button:hover{background:rgba(255,255,255,.06);color:#fff}
+  .appsw .apptabs button[aria-current="true"]{background:rgba(255,255,255,.10);color:#fff;font-weight:600;border:0}
+  .appsw .apptabs button[aria-current="true"] svg{stroke:#F2A516}
+  .appright{margin:auto 0 0;flex-direction:column;align-items:stretch;gap:4px}
+  .appsw .hbtn{display:flex;align-items:center;gap:12px;min-height:44px;border:0;border-radius:8px;padding:0 12px;background:none;color:#C9D8E2;font-size:14px;text-align:left;width:100%}
+  .appsw .hbtn:hover{background:rgba(255,255,255,.06);color:#fff}
+  .appsw .hbtn.due::after{top:12px;right:12px;left:auto}
+  .appsw #svUser,.appsw #fbUser{flex-direction:column;align-items:stretch!important;gap:6px!important;margin-top:10px;padding:12px;border-radius:10px;background:rgba(255,255,255,.06)}
+  .appsw #svUser .nm{color:#fff;font-weight:600;font-size:13.5px}
+  .appsw #svUser .sv-role{align-self:flex-start}
+  .appsw #svUser button{text-align:left;padding:8px 10px!important;border-color:rgba(255,255,255,.18)!important}
+}
+@media (max-width:899px){
+  body{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  .appsw{position:sticky;top:0;z-index:30;min-height:56px;padding:0 8px 0 14px;gap:8px}
+  .appsw .brand{margin:0;flex:1}
+  .appsw .brand div{display:block!important}
+  .appsw .brand div span{display:none!important}
+  .appsw .brand .mark{display:grid!important;width:30px;height:30px;font-size:15px}
+  .appsw .brand{display:flex;align-items:center;gap:10px}
+  :is(#opApp,#fcyApp,#declApp) .nav button{white-space:nowrap}
+  :is(#opApp,#fcyApp,#declApp) .nav{scrollbar-width:none}
+  .appsw .brand b{font-size:15px}
+  .appsw .appmenu{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;border:0;background:rgba(255,255,255,.10);color:#fff;cursor:pointer}
+  .apptabs{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--panel,#fff);border-top:1px solid var(--line,#DEE4EA);padding:4px 4px calc(6px + env(safe-area-inset-bottom,0px));align-self:auto;overflow:visible;gap:0}
+  .apptabs .navlabel{display:none}
+  .appsw .apptabs button{flex-direction:column;gap:3px;min-height:58px;border:0;border-radius:10px;padding:4px 2px;background:none;color:var(--muted,#5B6676);font-size:11px;justify-content:center}
+  .appsw .apptabs button i{display:none}
+  .appsw .apptabs button[aria-current="true"]{color:#1E5F83;font-weight:600;background:none;border:0}
+  .appsw .apptabs button[aria-current="true"] svg{stroke:#1E5F83}
+  .appsw .tl{display:none}.appsw .ts{display:inline}
+  .appright{display:none;position:absolute;right:8px;top:54px;flex-direction:column;align-items:stretch;gap:4px;background:#12324A;border-radius:12px;padding:10px;min-width:240px;box-shadow:0 12px 32px rgba(0,0,0,.3);margin:0}
+  .appsw.menu-open .appright{display:flex}
+  .appsw .hbtn{display:flex;align-items:center;gap:10px;min-height:44px;border:0;border-radius:8px;padding:0 12px;background:none;color:#fff;text-align:left}
+  .appsw #svUser,.appsw #fbUser{flex-direction:column;align-items:stretch!important;gap:6px!important;padding-top:8px;border-top:1px solid rgba(255,255,255,.15)}
+  .appsw #svUser .nm{color:#fff;font-weight:600}
+  .appsw #svUser .sv-role{align-self:flex-start}
+  .appsw #svUser button{min-height:40px;text-align:left}
+  .bar{top:56px!important}
+  #docApp .bar{position:static}
+  :is(#opApp,#fcyApp,#declApp) main{padding:16px 12px 40px}
+  :is(#opApp,#fcyApp,#declApp) .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  :is(#opApp,#fcyApp,#declApp) .kpi b{font-size:22px}
+  :is(#opApp,#fcyApp,#declApp) .nav{overflow-x:auto;flex-wrap:nowrap;max-width:100%}
+  :is(#opApp,#fcyApp,#declApp) .bar{padding:10px 12px}
+  :is(#opApp,#fcyApp,#declApp) .bar h1{font-size:16px}
+  :is(#opApp,#fcyApp,#declApp) .filters input[type=search]{min-width:0!important;flex:1 1 100%}
+  #docApp .preview,#docApp .form{padding:12px}
+  #docApp .paper-wrap{overflow-x:auto}
+}
+
+/* ===== A4 printing: only the document ===== */
+@page{size:A4 portrait;margin:0}
+@media print{
+  html,body{background:#fff!important;margin:0!important;padding:0!important;width:210mm}
+  body *{visibility:hidden}
+  #paper,#paper *{visibility:visible}
+  .appsw,.apptabs,.appright,#opApp,#fcyApp,#declApp,.bar,.form,.tabs,#checks,.sv-robar,dialog{display:none!important}
+  #docApp,.layout,.preview,.paper-wrap{display:block!important;padding:0!important;margin:0!important;border:0!important;box-shadow:none!important;overflow:visible!important;width:auto!important;min-height:0!important;background:#fff!important}
+  #paper{position:absolute;left:0;top:0;width:210mm!important;min-height:0!important;height:auto!important;margin:0!important;padding:10mm 12mm!important;box-shadow:none!important;box-sizing:border-box}
+  #paper .v{min-height:calc(297mm - 20mm - 2px)!important;display:flex!important;flex-direction:column!important}
+  #paper table,#paper tr,#paper .tot,#paper .foot{break-inside:avoid;page-break-inside:avoid}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+}
 </style>
-<script src="server-adapter.js"></script>
-</head>
+<script src="server-adapter.js"></script></head>
 <body>
-<header class="appsw"><div class="brand"><span class="mark" aria-hidden="true">B</span><div><b>Baraka Import System</b><span>Baraka Solar Manufacturing PLC</span></div></div>
-<nav class="apptabs" aria-label="Switch part"><button data-app="plan"><i>1</i>Order plan</button><button data-app="docs"><i>2</i>Documents</button><button data-app="fcy"><i>3</i>FCY &amp; bank permit</button><button data-app="decl"><i>4</i>Declarations</button></nav>
-<div class="appright"><button type="button" class="hbtn" id="backupBtn">Backup</button></div></header>
+<header class="appsw"><div class="brand"><span class="mark" aria-hidden="true">B</span><div><b>Baraka Import</b><span>Baraka Solar Manufacturing PLC</span></div></div><button type="button" class="appmenu" id="appMenuBtn" aria-label="Menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></button>
+<nav class="apptabs" aria-label="Main"><span class="navlabel">Workflow</span><button data-app="plan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"></path><path d="M3 8l9 5 9-5M12 13v8"></path></svg><span class="tl">Order plan</span><span class="ts">Orders</span></button><button data-app="docs"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"></path><path d="M14 3v5h5M8 13h8M8 17h6"></path></svg><span class="tl">Documents</span><span class="ts">Documents</span></button><button data-app="fcy"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18L12 4zM5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"></path></svg><span class="tl">FCY &amp; bank permit</span><span class="ts">FCY</span></button><button data-app="decl"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"></path><path d="m9 12 2 2 4-4"></path></svg><span class="tl">Declarations</span><span class="ts">Declarations</span></button></nav>
+<div class="appright"><span class="navlabel">Admin</span><button type="button" class="hbtn" id="backupBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"></path><path d="M4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path></svg><span>Backup</span></button></div></header>
 <dialog id="bkDlg" aria-labelledby="bkTitle"><div class="bk-h"><h2 id="bkTitle">Backup and restore</h2><button type="button" class="bk-btn" id="bkClose">Close</button></div><div id="bkBody"></div><div class="bk-msg" id="bkMsg" role="status"></div></dialog>
 <div id="opApp" hidden>
 <div class="bar">
@@ -325,7 +406,8 @@ body{background:#F4F6F8}
   <button class="btn" id="delShip" style="color:var(--danger);border-color:var(--danger)">Delete</button>
   <span class="grow"></span>
   <span class="status" id="status" role="status"></span>
-  <button class="btn" id="dlOne">Download PDF</button>
+  <button class="btn" id="printBtn" title="Print this document on A4">Print</button>
+  <button class="btn" id="dlOne" title="Opens an A4 page: choose Save as PDF">Download PDF (A4)</button>
   <button class="btn" id="dlHtml" title="Backup: a print-ready page. Open it and use Print, then Save as PDF">Print version</button>
   <button class="btn primary" id="dlAll" title="Proforma, commercial invoice, packing list and all truck waybills">Download all (PDF)</button>
 </div>
@@ -340,7 +422,6 @@ body{background:#F4F6F8}
 </div>
 
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -751,43 +832,83 @@ function refresh(){
 /* ---------- PDF downloads ---------- */
 function baseName(){return slug(state.poNo&&activeDoc==="po"?state.poNo:(state.piNo||"shipment"))||"shipment"}
 var busy=false;
-async function makePdf(pages,filename){
-  if(!downloads){setStatus("Downloads are not available in this view","err");return}
-  if(!window.html2pdf){setStatus("The PDF engine did not load. Reload the page and try again.","err");return}
-  if(busy)return;busy=true;setStatus("Making PDF…");
-  var host=document.createElement("div");
-  host.style.cssText="width:794px;background:#fff;margin:0;padding:0";
-  host.innerHTML='<style>'+DOC_CSS+'.pg{width:794px;padding:30px 38px;background:#fff;box-sizing:border-box}.pg+.pg{break-before:page;page-break-before:always}.pg .v{min-height:1040px}</style>'+pages.map(function(p){return '<div class="pg">'+p+'</div>'}).join("");
-  try{
-    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
-    await Promise.all(Array.prototype.map.call(host.querySelectorAll("img"),function(im){return im.complete?null:new Promise(function(r){im.onload=im.onerror=r})}));
-    var buf=await window.html2pdf().set({margin:0,image:{type:"jpeg",quality:0.97},html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",scrollX:0,scrollY:0,windowWidth:794},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"],avoid:["tr",".tot",".words",".foot"]}}).from(host).outputPdf("arraybuffer");
-    await downloads.save({filename:filename,data:buf});setStatus("Downloaded "+filename,"ok");
-  }catch(e){
-    if(e&&e.code==="declined")setStatus("Download cancelled");
-    else if(e&&e.code==="rate_limited")setStatus("A download prompt is already open","err");
-    else setStatus("Could not make the PDF. Try again.","err");
-  }finally{busy=false}
+/* ---------- A4 printing and PDF (browser's own PDF engine) ---------- */
+function a4Html(pages,title){
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+
+  '@page{size:A4 portrait;margin:0}html,body{margin:0;padding:0;background:#fff}'+
+  '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+  '.pg{width:210mm;padding:30px 38px;margin:0 auto;box-sizing:border-box;background:#fff}.pg.fit{height:296mm;overflow:hidden}'+
+  '.pg>div{display:flex;flex-direction:column}.pg .v{min-height:0}'+
+  '.pg+.pg{break-before:page;page-break-before:always}'+
+  '.pg thead{display:table-header-group}.pg tr,.pg .tot,.pg .foot,.pg .sig{break-inside:avoid;page-break-inside:avoid}'+
+  '@media screen{body{background:#E9EDF1;padding:16px 0}.pg{box-shadow:0 2px 10px rgba(0,0,0,.15);margin:0 auto 16px}.hint{font:14px Arial,sans-serif;text-align:center;color:#444;margin:0 0 12px}}'+
+  '@media print{.hint{display:none}}'+DOC_CSS+'</style></head><body>'+
+  pages.map(function(p){return '<div class="pg">'+p+'</div>'}).join("")+'</body></html>';
 }
-document.getElementById("dlOne").onclick=function(){
-  var name=DOCS.filter(function(x){return x[0]===activeDoc})[0][1];
-  var suffix=activeDoc==="wb"&&wbCount(state)>1?"-truck-"+(wbIndex+1):"";
-  makePdf([docHtml(activeDoc,state,wbIndex)],baseName()+"-"+slug(name)+suffix+".pdf");
-};
+function waitAssets(doc){
+  var imgs=Array.prototype.slice.call(doc.images||[]);
+  var p=imgs.map(function(im){return im.complete?null:new Promise(function(r){im.onload=im.onerror=r})});
+  if(doc.fonts&&doc.fonts.ready)p.push(doc.fonts.ready.catch(function(){}));
+  return Promise.race([Promise.all(p),new Promise(function(r){setTimeout(r,4000)})]);
+}
+function fitPages(doc){
+  var mm=doc.createElement("div");mm.style.cssText="position:absolute;width:296mm;height:0;visibility:hidden";doc.body.appendChild(mm);
+  var pageH=mm.getBoundingClientRect().width;mm.remove();
+  Array.prototype.forEach.call(doc.querySelectorAll(".pg"),function(pg){
+    var inner=pg.firstElementChild,v=pg.querySelector(".v");if(!inner)return;
+    inner.style.zoom="";if(v)v.style.minHeight="0";
+    var cs=doc.defaultView.getComputedStyle(pg),avail=pageH-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-2;
+    var h=inner.scrollHeight;
+    if(h<=avail){pg.classList.add("fit");if(v)v.style.minHeight=avail+"px";return}
+    var z=avail/h;
+    if(z>=0.72){inner.style.zoom=z;pg.classList.add("fit");if(v)v.style.minHeight=(avail/z)+"px";}
+  });
+}
+var printing=false;
+function printA4(pages,title,forPdf){
+  if(printing)return;printing=true;
+  var html=a4Html(pages,title);
+  var mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  function done(msg,cls){printing=false;if(msg)setStatus(msg,cls)}
+  var tip=forPdf?"In the print window choose “Save as PDF”, paper A4, margins None.":"";
+  if(mobile){
+    var w=null;try{w=window.open("","_blank")}catch(e){}
+    if(!w){done("Your browser blocked the print window. Use Print version instead.","err");return}
+    w.document.open();w.document.write(html.replace('<body>','<body><p class="hint">'+(forPdf?"Use your browser’s Share or Print menu and choose Save as PDF (A4).":"Use your browser’s Print menu.")+'</p>'));w.document.close();
+    waitAssets(w.document).then(function(){try{fitPages(w.document)}catch(e){}try{w.focus();w.print()}catch(e){}done(tip)});
+    return;
+  }
+  var f=document.createElement("iframe");
+  f.setAttribute("aria-hidden","true");f.title="Print";
+  f.style.cssText="position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;visibility:hidden";
+  document.body.appendChild(f);
+  var d=f.contentWindow.document;d.open();d.write(html);d.close();
+  setStatus(forPdf?"Opening the A4 PDF window…":"Opening print…");
+  waitAssets(d).then(function(){
+    try{fitPages(d)}catch(e){}
+    var cleaned=false;function clean(){if(cleaned)return;cleaned=true;setTimeout(function(){f.remove()},1000)}
+    try{f.contentWindow.addEventListener("afterprint",clean)}catch(e){}
+    setTimeout(clean,120000);
+    var t=document.title;document.title=title;
+    try{f.contentWindow.focus();f.contentWindow.print();done(tip||"Sent to print.","ok")}
+    catch(e){done("Printing is blocked here. Use Print version instead.","err");clean()}
+    setTimeout(function(){document.title=t},2000);
+  });
+}
+function docTitle(){var name=DOCS.filter(function(x){return x[0]===activeDoc})[0][1];var suffix=activeDoc==="wb"&&wbCount(state)>1?" truck "+(wbIndex+1):"";return ((activeDoc==="po"?state.poNo:state.piNo)||"Document")+" - "+name+suffix}
+function allPages(){var pages=["pi","ci","pl"].map(function(k){return docHtml(k,state)});for(var i=0;i<wbCount(state);i++)pages.push(docHtml("wb",state,i));return pages}
+document.getElementById("dlOne").onclick=function(){printA4([docHtml(activeDoc,state,wbIndex)],docTitle(),true)};
+document.getElementById("dlAll").onclick=function(){printA4(allPages(),(state.piNo||"Shipment")+" - vendor documents",true)};
+document.getElementById("printBtn").onclick=function(){printA4([docHtml(activeDoc,state,wbIndex)],docTitle(),false)};
 document.getElementById("dlHtml").onclick=async function(){
   if(!downloads){setStatus("Downloads are not available in this view","err");return}
-  var pages=activeDoc==="po"?[docHtml("po",state)]:["pi","ci","pl"].map(function(k){return docHtml(k,state)});
-  if(activeDoc!=="po")for(var i=0;i<wbCount(state);i++)pages.push(docHtml("wb",state,i));
-  var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(state.piNo||"Documents")+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg{width:794px;min-height:1122px;padding:30px 38px;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column}.pg>div{flex:1;display:flex;flex-direction:column}.pg+.pg{break-before:page;page-break-before:always}.pg .v{min-height:1040px}'+DOC_CSS+'</style></head><body>'+pages.map(function(p){return '<div class="pg">'+p+'</div>'}).join("")+'</body></html>';
+  var pages=activeDoc==="po"?[docHtml("po",state)]:allPages();
+  var html=a4Html(pages,(state.piNo||"Documents")).replace('<body>','<body><p class="hint">Press Ctrl+P (or Print), choose Save as PDF, paper A4, margins None.</p>').replace('</body>','<scr'+'ipt>('+fitPages.toString()+')(document);window.addEventListener("load",function(){'+fitPages.name+'(document)})</scr'+'ipt></body>');
   var name=(slug(activeDoc==="po"?state.poNo:state.piNo)||"documents")+(activeDoc==="po"?"-purchase-order":"-vendor-documents")+"-print.html";
   try{await downloads.save({filename:name,data:html});setStatus("Downloaded "+name+". Open it, then Print and Save as PDF.","ok")}
   catch(e){setStatus(e&&e.code==="declined"?"Download cancelled":"Download failed. Try again.",e&&e.code==="declined"?"":"err")}
 };
-document.getElementById("dlAll").onclick=function(){
-  var pages=["pi","ci","pl"].map(function(k){return docHtml(k,state)});
-  for(var i=0;i<wbCount(state);i++)pages.push(docHtml("wb",state,i));
-  makePdf(pages,(slug(state.piNo)||"shipment")+"-vendor-documents.pdf");
-};
+
 
 /* ---------- local draft ---------- */
 function saveDraft(){try{localStorage.setItem("impdoc-draft",JSON.stringify({state:state,currentId:currentId}))}catch(e){}}
@@ -1911,6 +2032,13 @@ if(window.claude&&window.claude.use){
     window.scrollTo(0,0);
   }
   window.__switchApp=sw;
+  (function(){var hdr=document.querySelector(".appsw"),mb=document.getElementById("appMenuBtn");if(!hdr||!mb)return;
+    function set(o){hdr.classList.toggle("menu-open",o);mb.setAttribute("aria-expanded",String(o))}
+    mb.onclick=function(e){e.stopPropagation();set(!hdr.classList.contains("menu-open"))};
+    document.addEventListener("click",function(e){if(hdr.classList.contains("menu-open")&&!e.target.closest(".appright")&&e.target!==mb)set(false)});
+    document.addEventListener("keydown",function(e){if(e.key==="Escape")set(false)});
+    document.querySelectorAll(".apptabs [data-app]").forEach(function(b){b.addEventListener("click",function(){set(false)})});
+  })();
   function arm(btn){btn.dataset.armed="1";btn._txt=btn.textContent;btn.textContent="Click again to delete";btn.style.background="#A32D2D";btn.style.color="#fff";btn.style.borderColor="#A32D2D";
     btn._t=setTimeout(function(){disarm(btn)},4000)}
   function disarm(btn){clearTimeout(btn._t);btn.dataset.armed="";if(btn._txt)btn.textContent=btn._txt;btn.style.background="";btn.style.color="";btn.style.borderColor=""}
